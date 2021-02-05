@@ -1,6 +1,6 @@
-import 'dart:convert';
 import 'dart:io';
 
+import 'package:ansicolor/ansicolor.dart';
 import 'package:args/args.dart';
 import 'package:path/path.dart' as path;
 
@@ -10,6 +10,12 @@ const options = {
 };
 
 ArgResults argResults;
+
+AnsiPen statusPen = AnsiPen()
+  ..blue(bold: true);
+
+AnsiPen errorPen = AnsiPen()
+  ..red(bold: true);
 
 void run(List<String> arguments) async {
   exitCode = 0;
@@ -31,21 +37,21 @@ void run(List<String> arguments) async {
     'gallery-dl',
   ]) {
     if (!await which(cmd)) {
-      print('[$cmd] Command not found, is it installed?');
+      print('${errorPen('[err]')} Command "$cmd" not found, is it installed?');
       exit(2);
     }
   }
 
   var outputDir = Directory(argResults[options['outputDir']]);
   await outputDir.create(recursive: true).catchError((err) {
-    print(
-        "Output directory ${outputDir.path} doesn't exist and it can't be created");
+    print("${errorPen('[err]')} Output directory ${outputDir.path} doesn't exist and it can't be created");
     exit(2);
   });
 
   var tmpDir = outputDir.createTempSync();
   var url = Uri.parse(argResults[options['url']]);
 
+  print('${statusPen('[dldl]')} Attempting to download files on "$url"');
   [
     await Process.run('gallery-dl', [url.toString()],
         workingDirectory: tmpDir.path),
@@ -54,7 +60,7 @@ void run(List<String> arguments) async {
   ];
 
   tmpDir.listSync(recursive: true).whereType<File>().forEach((file) {
-    print('${file.path} -> ${path.basename(file.path)}');
+    print('${statusPen('[dldl]')} Downloaded "${path.basename(file.path)}"');
     file.renameSync(path.join(outputDir.path, path.basename(file.path)));
   });
 
